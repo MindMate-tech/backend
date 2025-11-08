@@ -3,12 +3,14 @@ name = "hackprinceton"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = "==3.13"
 dependencies = [
     "dedalus-labs>=0.0.1",
     "fastapi>=0.121.0",
     "numpy>=2.3.4",
     "psycopg2-binary>=2.9.11",
+    "pytest<=8.0.0",
+    "pytest-asyncio>=0.23.3",
     "python-dotenv>=1.2.1",
     "supabase>=2.24.0",
     "uvicorn>=0.38.0",

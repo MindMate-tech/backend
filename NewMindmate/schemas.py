@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 from datetime import datetime, date
 from uuid import UUID
@@ -51,14 +51,22 @@ class SessionResponse(SessionCreate):
 # ------------------------------
 # Patient
 # ------------------------------
+from pydantic import BaseModel
+from uuid import UUID
+from datetime import datetime, date
+from typing import Optional, List
+
 class PatientCreate(BaseModel):
     name: str
-    dob: Optional[date]
-    gender: Optional[str]
+    dob: Optional[date] = None
+    gender: Optional[str] = None
 
 class PatientResponse(PatientCreate):
     patient_id: UUID
     created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)  # For ORM & dict compatibility
+
 
 # ------------------------------
 # Cognitive Metrics for frontend
@@ -97,3 +105,26 @@ class PatientData(BaseModel):
     recentSessions: List[RecentSession] = []
     overallCognitiveScore: float
     memoryRetentionRate: float
+
+class DoctorCreate(BaseModel):
+    name: str
+    specialization: Optional[str]
+    email: Optional[str]
+    phone: Optional[str]
+
+class DoctorResponse(DoctorCreate):
+    doctor_id: UUID
+    created_at: datetime
+
+class DoctorRecordCreate(BaseModel):
+    doctor_id: UUID
+    patient_id: UUID
+    session_id: Optional[UUID]
+    record_type: Optional[str]
+    summary: Optional[str]
+    detailed_notes: Optional[str]
+    recommendations: Optional[str]
+
+class DoctorRecordResponse(DoctorRecordCreate):
+    record_id: UUID
+    created_at: datetime

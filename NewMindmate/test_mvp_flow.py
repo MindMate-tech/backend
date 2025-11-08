@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from db.supabase_client import get_supabase
+from NewMindmate.db.supabase_client import get_supabase
 
 supabase = get_supabase()
 
