@@ -88,62 +88,6 @@ def analyze_session(session_id: UUID, background_tasks: BackgroundTasks):
     patient_id = session["patient_id"]
     audio_url = session.get("audio_url")  # optional field
 
-    def run_agents():
-        # -----------------------
-        # Orchestrator input
-        # -----------------------
-        orchestrator_input = {"patient_id": patient_id, "audio_url": audio_url}
-
-        try:
-            output = orchestrator.run(orchestrator_input)
-
-            # Example output structure:
-            # {
-            #   "transcript": "...",
-            #   "memories": [{"title": "...", "description": "..."}],
-            #   "cognitive_test_scores": [{"test": "recall", "score": 8, "max_score": 10}]
-            # }
-
-            # Store memory embeddings in Supabase
-            for memory in output.get("memories", []):
-                embedding = memory.get("embedding")  # Dedalus agent generates embedding
-                if embedding:
-                    store_memory_embedding(
-                        supabase,
-                        patient_id=patient_id,
-                        title=memory["title"],
-                        description=memory["description"],
-                        embedding=embedding,
-                        dateapprox=memory.get("dateapprox"),
-                        location=memory.get("location"),
-                        emotional_tone=memory.get("emotional_tone"),
-                        tags=memory.get("tags"),
-                        significance_level=memory.get("significance_level", 1)
-                    )
-
-            # Compute overall score from cognitive test scores
-            cognitive_scores = output.get("cognitive_test_scores", [])
-            if cognitive_scores:
-                scores = [(t["score"] / t["max_score"]) * 100 for t in cognitive_scores]
-                overall_score = sum(scores) / len(scores)
-            else:
-                overall_score = None
-
-            # Update session in Supabase
-            update_data = {
-                "ai_extracted_data": output,
-                "cognitive_test_scores": cognitive_scores,
-                "overall_score": overall_score,
-                "updated_at": datetime.utcnow()
-            }
-            supabase.table("sessions").update(update_data).eq("session_id", str(session_id)).execute()
-
-        except Exception as e:
-            # Log error (replace with your logging system)
-            print(f"Error running Dedalus orchestrator: {e}")
-
-    # Run in background
-    background_tasks.add_task(run_agents)
 
     # Return immediately
     return {"status": "Analysis started in background.", "session_id": str(session_id)}
