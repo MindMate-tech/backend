@@ -80,8 +80,7 @@ async def analyze_session_with_cognitive_api(session_id: UUID, background_tasks:
                 "ai_extracted_data": analysis,
                 "cognitive_test_scores": analysis.get("cognitive_test_scores", []),
                 "overall_score": analysis.get("overall_score"),
-                "notable_events": analysis.get("notable_events", []),
-                "updated_at": datetime.utcnow().isoformat()
+                "notable_events": analysis.get("notable_events", [])
             }).eq("session_id", str(session_id)).execute()
 
             print(f"💾 Stored analysis in Supabase")
@@ -111,8 +110,7 @@ async def analyze_session_with_cognitive_api(session_id: UUID, background_tasks:
             print(f"❌ Analysis failed: {e}")
             # Store error in session
             supabase.table("sessions").update({
-                "ai_extracted_data": {"error": str(e)},
-                "updated_at": datetime.utcnow().isoformat()
+                "ai_extracted_data": {"error": str(e)}
             }).eq("session_id", str(session_id)).execute()
 
     # Run analysis in background
