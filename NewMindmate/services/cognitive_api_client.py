@@ -8,8 +8,9 @@ from typing import Dict, List, Optional
 from datetime import datetime
 
 
-# Your deployed Cognitive API
-COGNITIVE_API_URL = "https://mindmate-cognitive-api.onrender.com"
+# Your deployed Cognitive API (use local for testing if Render is sleeping)
+COGNITIVE_API_URL = "http://localhost:8000"  # Local for testing
+# COGNITIVE_API_URL = "https://mindmate-cognitive-api.onrender.com"  # Production
 
 
 async def analyze_session_with_ai(
