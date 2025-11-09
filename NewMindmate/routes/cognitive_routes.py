@@ -6,10 +6,10 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks
 from uuid import UUID
 from datetime import datetime
 from typing import List
-from db.supabase_client import get_supabase
-from db.vector_utils import store_memory_embedding
-from schemas import PatientData
-from services.cognitive_api_client import (
+from NewMindmate.db.supabase_client import get_supabase
+from NewMindmate.db.vector_utils import store_memory_embedding
+from NewMindmate.schemas import PatientData
+from NewMindmate.services.cognitive_api_client import (
     analyze_session_with_ai,
     get_patient_dashboard,
     health_check as cognitive_health_check
