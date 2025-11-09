@@ -132,6 +132,102 @@ async def health_check() -> Dict:
         return {"status": "unhealthy", "error": str(e)}
 
 
+async def doctor_query(query: str, context: Optional[Dict] = None) -> Dict:
+    """
+    Natural language query interface for doctors
+
+    Uses AI agent with tool calling to answer questions about patients and sessions.
+
+    Args:
+        query: Natural language question (e.g., "Show me at-risk patients")
+        context: Optional context (doctor_id, patient_id, session_id, etc.)
+
+    Returns:
+        Dict with:
+            - success: bool
+            - query: str (original query)
+            - response: str (AI-generated response)
+            - tools_used: List[str]
+            - model_info: Dict (model selection info, complexity, etc.)
+            - raw_data: Dict (raw tool results)
+
+    Examples:
+        - "Show me all at-risk patients"
+        - "Why is this patient declining?"
+        - "Get recent sessions for patient X"
+        - "Compare these two patients"
+    """
+    try:
+        payload = {
+            "query": query,
+            "context": context or {}
+        }
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                f"{COGNITIVE_API_URL}/doctor/query",
+                json=payload
+            )
+
+            if response.status_code != 200:
+                raise Exception(f"Doctor query API error: {response.text}")
+
+            return response.json()
+
+    except httpx.TimeoutException:
+        return {
+            "success": False,
+            "error": "Query timeout",
+            "query": query
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "query": query
+        }
+
+
+async def get_session_insights(session_id: UUID, query: Optional[str] = None) -> Dict:
+    """
+    Get AI-powered insights about a specific session
+
+    Args:
+        session_id: UUID of the session
+        query: Optional specific question about the session
+                If None, returns general session analysis
+
+    Returns:
+        AI analysis of the session with natural language response
+    """
+    default_query = f"Analyze session {session_id} and provide detailed insights about performance, concerns, and recommendations"
+
+    result = await doctor_query(
+        query=query or default_query,
+        context={"session_id": str(session_id)}
+    )
+
+    return result
+
+
+async def get_patient_risk_assessment(patient_id: UUID) -> Dict:
+    """
+    Get AI risk assessment for a specific patient
+
+    Args:
+        patient_id: UUID of the patient
+
+    Returns:
+        Risk assessment with reasoning and recommendations
+    """
+    result = await doctor_query(
+        query=f"Analyze patient {patient_id} and identify any risk factors or concerns",
+        context={"patient_id": str(patient_id)}
+    )
+
+    return result
+
+
 def calculate_age(dob) -> int:
     """Calculate age from date of birth"""
     if not dob:

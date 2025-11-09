@@ -1,23 +1,11 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, BackgroundTasks
+from typing import List, Optional
 from uuid import UUID
 from datetime import datetime
-from typing import List
-
-from schemas import SessionCreate, SessionResponse
-from db.supabase_client import get_supabase
-
-from fastapi import APIRouter, BackgroundTasks, HTTPException
-from uuid import UUID
-from datetime import datetime
+from pydantic import BaseModel
 
 from db.supabase_client import get_supabase
 from db.vector_utils import store_memory_embedding
-
-from fastapi import APIRouter, HTTPException
-from typing import List
-from uuid import UUID
-from datetime import datetime
-from db.supabase_client import get_supabase
 
 from schemas import (
     PatientCreate, PatientResponse,
@@ -26,11 +14,142 @@ from schemas import (
     PatientData, BrainRegionScores, MemoryMetrics, RecentSession, TimeSeriesDataPoint
 )
 
+from services.cognitive_api_client import (
+    doctor_query,
+    get_session_insights,
+    get_patient_risk_assessment
+)
+
 router = APIRouter()
 supabase = get_supabase()
 
-router = APIRouter(prefix="/sessions", tags=["sessions"])
-supabase = get_supabase()
+
+# Request models for doctor query endpoints
+class DoctorQueryRequest(BaseModel):
+    """Request for natural language doctor query"""
+    query: str
+    context: Optional[dict] = None
+
+
+class SessionInsightRequest(BaseModel):
+    """Request for session-specific insights"""
+    session_id: UUID
+    query: Optional[str] = None
+
+
+# ==============================
+# DOCTOR QUERY ENDPOINTS (AI-POWERED)
+# ==============================
+
+@router.post("/doctor/query")
+async def natural_language_query(request: DoctorQueryRequest):
+    """
+    Natural language query interface for doctors
+
+    Allows doctors to ask questions in plain English:
+    - "Show me all at-risk patients"
+    - "Why is patient X declining?"
+    - "Compare patients A and B"
+    - "Get recent sessions for patient Y"
+
+    The AI agent uses tool calling to answer intelligently.
+
+    Features:
+    - Intelligent model routing (fast for simple queries, detailed for complex)
+    - Sequential thinking for medical reasoning
+    - Memory for follow-up queries
+    - Predictive risk scoring
+    """
+    result = await doctor_query(
+        query=request.query,
+        context=request.context
+    )
+
+    return {
+        "success": result.get("success", True),
+        "query": request.query,
+        "response": result.get("response", ""),
+        "tools_used": result.get("tools_used", []),
+        "model_info": result.get("model_info", {}),
+        "raw_data": result.get("raw_data")
+    }
+
+
+@router.post("/sessions/{session_id}/insights")
+async def get_ai_session_insights(session_id: UUID, query: Optional[str] = None):
+    """
+    Get AI-powered insights about a specific session
+
+    Args:
+        session_id: UUID of the session to analyze
+        query: Optional specific question about the session
+
+    Returns:
+        Natural language analysis with insights and recommendations
+
+    Example queries:
+    - None (default: general analysis)
+    - "What were the key concerns in this session?"
+    - "How does this session compare to previous ones?"
+    """
+    # Verify session exists
+    result = supabase.table("sessions").select("*").eq("session_id", str(session_id)).execute()
+
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    session = result.data[0]
+
+    insights = await get_session_insights(
+        session_id=session_id,
+        query=query
+    )
+
+    return {
+        "success": insights.get("success", True),
+        "session_id": str(session_id),
+        "session_date": session.get("session_date"),
+        "patient_id": session.get("patient_id"),
+        "insights": insights.get("response", ""),
+        "model_info": insights.get("model_info", {}),
+        "raw_data": insights.get("raw_data")
+    }
+
+
+@router.get("/patients/{patient_id}/risk-assessment")
+async def get_ai_risk_assessment(patient_id: UUID):
+    """
+    Get AI-powered risk assessment for a patient
+
+    Analyzes patient history and provides:
+    - Risk level assessment
+    - Specific risk factors identified
+    - Trend analysis
+    - Actionable recommendations
+    """
+    # Verify patient exists
+    result = supabase.table("patients").select("*").eq("patient_id", str(patient_id)).execute()
+
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    patient = result.data[0]
+
+    assessment = await get_patient_risk_assessment(patient_id)
+
+    return {
+        "success": assessment.get("success", True),
+        "patient_id": str(patient_id),
+        "patient_name": patient.get("name"),
+        "assessment": assessment.get("response", ""),
+        "model_info": assessment.get("model_info", {}),
+        "raw_data": assessment.get("raw_data")
+    }
+
+
+# ==============================
+# SESSION CRUD ENDPOINTS
+# ==============================
 
 # ------------------------------
 # Create a new session
@@ -75,13 +194,6 @@ def get_sessions(patient_id: UUID):
         return []
 
     return [SessionResponse(**row) for row in result.data]
-
-# ------------------------------
-# Analyze session (AI placeholder)
-# ------------------------------
-
-router = APIRouter()
-supabase = get_supabase()
 
 # ------------------------------
 # Analyze session (Dedalus + vector embeddings)
