@@ -7,6 +7,7 @@ from uuid import UUID
 from datetime import datetime, date
 from fastapi import FastAPI, HTTPException
 from NewMindmate.schemas import DoctorCreate, DoctorResponse, DoctorRecordCreate, DoctorRecordResponse, PatientResponse, PatientCreate, SessionResponse, SessionCreate, MemoryResponse, MemoryCreate
+from NewMindmate.routes.cognitive_routes import router as cognitive_router
 
 # ------------------------------
 # App Initialization
@@ -20,6 +21,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ------------------------------
+# Include Cognitive API Routes
+# ------------------------------
+app.include_router(cognitive_router)
 
 # ------------------------------
 # Health Check

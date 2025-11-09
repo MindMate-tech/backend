@@ -8,6 +8,7 @@ dependencies = [
     "dedalus-labs>=0.0.1",
     "fastapi>=0.121.0",
     "gunicorn>=23.0.0",
+    "httpx>=0.28.1",
     "numpy>=2.3.4",
     "psycopg2-binary>=2.9.11",
     "pytest<=8.0.0",
